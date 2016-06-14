@@ -1,0 +1,162 @@
+﻿
+<h1>Scheduler</h1>
+
+<div ng-app="medScheduler">
+    <div class="container" ng-controller="MedSchedulerController as medScheduler">
+        <div class="row">
+            <div class="col-xs-12">
+                <button class="btn btn-primary" ng-click="medScheduler.solve()">Solve</button>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Doctor</th>
+                                <th ng-repeat="month in medScheduler.schedule.months">{{month.name}}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="doctor in medScheduler.schedule.doctors">
+                                <td>{{doctor.name}}</td>
+                                <td ng-repeat="rotation in medScheduler.schedule.getRotationsForDoctor(doctor)" ng-class="{ 'is-constraint': rotation.isConstraint, 'computed-table-value': !rotation.isConstraint }">
+                                    <span>
+                                        <select class="form-control rotation-select" ng-model="rotation.rotationTypeId" ng-change="medScheduler.tableValueChanged(rotation)">
+                                            <option></option>
+                                            <option ng-repeat="rotationType in medScheduler.rotationTypes" value="{{rotationType.id}}">{{rotationType.name}}</option>
+                                        </select>
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <button ng-click="medScheduler.clearSchedule()" class="btn btn-danger">Clear Schedule</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12 col-md-4">
+                <h2>Doctors</h2>
+                <ul>
+                    <li ng-repeat="doctor in medScheduler.schedule.doctors">
+                        <span>{{doctor.name}}</span>
+                        <span><a href ng-click="medScheduler.removeDoctor(doctor)"> [Remove]</a></span>
+                    </li>
+                </ul>
+                <form ng-submit="medScheduler.addDoctorSubmit()">
+                    <input type="text" ng-model="medScheduler.doctorText" size="30"
+                           placeholder="add new doctor here">
+                    <input class="btn-primary" type="submit" value="add">
+                </form>
+            </div>
+            <div class="col-xs-12 col-md-4">
+                <h2>Rotations</h2>
+                <ul>
+                    <li ng-repeat="rotationType in medScheduler.rotationTypes">
+                        <span>{{rotationType.name}}</span>
+                        <span ng-show="{{rotationType.inpatient}}"> (inpatient)</span>
+                        <span><a href ng-click="medScheduler.removeRotationType(rotationType)"> [Remove]</a></span>
+                    </li>
+                </ul>
+                <form ng-submit="medScheduler.addRotationType()">
+                    <input type="text" ng-model="medScheduler.rotationTypeText" size="30"
+                           placeholder="add new rotation type here">
+                    <br />
+                    <label>Inpatient: <input type="checkbox" ng-model="medScheduler.inpatientCheckbox" /></label>
+                    <input class="btn-primary" type="submit" value="add">                    
+                </form>
+            </div>
+            <div class="col-xs-12 col-md-4">
+                <h2>Consecutive Inpatient Rotation Limit</h2>
+                <p>Set the maximum number of inpatient rotations that any person can have in a row.</p>
+                <input type="number" min="1" max="13" ng-model="medScheduler.schedule.maxConsecutiveInpatientRotations"/>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                <h2>Consecutive Rotation Limits</h2>
+                <p>Input the maximum number of times that each rotation can appear in a row.</p>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Max</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="rotationType in medScheduler.rotationTypes">
+                                <td>{{rotationType.name}}</td>
+                                <td>
+                                    <input type="number" min="1" ng-model="medScheduler.schedule.maxConsecutiveRotationTypes[rotationType.id]" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                <h2>Monthly Rotations Needed</h2>
+                <p>Input the number of rotations that need to be completed each month.</p>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th ng-repeat="month in medScheduler.schedule.months">{{month.name}}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="rotationType in medScheduler.rotationTypes">
+                                <td>{{rotationType.name}}</td>
+                                <td ng-repeat="month in medScheduler.schedule.months">
+                                    <input type="number" min="0" class="monthly-rotations-input" ng-model="month.rotationTypesNeeded[rotationType.id]" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                <h2>Doctor Rotations Needed</h2>
+                <p>Input the number of rotations that each doctor needs to complete.</p>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th ng-repeat="doctor in medScheduler.schedule.doctors">{{doctor.name}}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="rotationType in medScheduler.rotationTypes">
+                                <td>{{rotationType.name}}</td>
+                                <td ng-repeat="doctor in medScheduler.schedule.doctors">
+                                    <input type="number" min="0" max="13" ng-model="doctor.rotationTypesNeeded[rotationType.id]" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>TOTAL</td>
+                                <td ng-repeat="doctor in medScheduler.schedule.doctors">
+                                    {{ sumValues(doctor.rotationTypesNeeded) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    @Scripts.Render("~/bundles/angular")
+    @Scripts.Render("~/bundles/app")
+}
